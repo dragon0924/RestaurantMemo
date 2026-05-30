@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +55,7 @@ fun HomeScreen(
     restaurants: List<Restaurant>,
     onRestaurantClick: (Restaurant) -> Unit,
     onAddClick: () -> Unit,
+    onManageTagsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -94,22 +96,38 @@ fun HomeScreen(
                     shape = RoundedCornerShape(18.dp)
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                Button(
-                    onClick = onAddClick,
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Restaurant,
-                        contentDescription = "レストラン"
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("新しいお店を記録する")
+                    Button(
+                        onClick = onAddClick,
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentGreen),
+                        modifier = Modifier.weight(1.45f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Restaurant,
+                            contentDescription = "レストラン"
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("お店を追加")
+                    }
+
+                    Button(
+                        onClick = onManageTagsClick,
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentGreen),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("タグを管理")
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 SortOptionChips(
                     selectedOption = sortOption,

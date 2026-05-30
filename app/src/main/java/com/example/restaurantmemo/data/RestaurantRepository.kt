@@ -2,6 +2,7 @@ package com.example.restaurantmemo.data
 
 import com.example.restaurantmemo.data.local.RestaurantDao
 import com.example.restaurantmemo.data.local.RestaurantWithVisits
+import com.example.restaurantmemo.data.local.TagEntity
 import com.example.restaurantmemo.data.local.toEntity
 import com.example.restaurantmemo.model.Restaurant
 import com.example.restaurantmemo.model.Visit
@@ -13,8 +14,12 @@ class RestaurantRepository(
     val restaurantsWithVisits: Flow<List<RestaurantWithVisits>> =
         dao.observeRestaurantsWithVisits()
 
+    val tags: Flow<List<String>> = dao.observeTagNames()
+
     suspend fun addRestaurant(restaurant: Restaurant): Long {
-        return dao.insertRestaurantWithTags(restaurant.toEntity(), restaurant.tags.normalizedTags())
+        val tags = restaurant.tags.normalizedTags()
+        insertTagMasters(tags)
+        return dao.insertRestaurantWithTags(restaurant.toEntity(), tags)
     }
 
     suspend fun addVisit(restaurantId: Long, visit: Visit): Long {
@@ -22,7 +27,9 @@ class RestaurantRepository(
     }
 
     suspend fun updateRestaurant(restaurant: Restaurant) {
-        dao.updateRestaurantWithTags(restaurant.toEntity(), restaurant.tags.normalizedTags())
+        val tags = restaurant.tags.normalizedTags()
+        insertTagMasters(tags)
+        dao.updateRestaurantWithTags(restaurant.toEntity(), tags)
     }
 
     suspend fun deleteRestaurant(restaurant: Restaurant) {
@@ -39,6 +46,34 @@ class RestaurantRepository(
 
     suspend fun updateFavorite(restaurantId: Long, isFavorite: Boolean) {
         dao.updateFavorite(restaurantId, isFavorite)
+    }
+
+    suspend fun addTag(name: String) {
+        val normalizedName = name.trim()
+        if (normalizedName.isNotBlank()) {
+            dao.insertTag(TagEntity(normalizedName))
+        }
+    }
+
+    suspend fun renameTag(oldName: String, newName: String) {
+        val normalizedOldName = oldName.trim()
+        val normalizedNewName = newName.trim()
+        if (normalizedOldName.isNotBlank() && normalizedNewName.isNotBlank()) {
+            dao.renameTag(normalizedOldName, normalizedNewName)
+        }
+    }
+
+    suspend fun deleteTag(name: String) {
+        val normalizedName = name.trim()
+        if (normalizedName.isNotBlank()) {
+            dao.deleteTagAndLinks(normalizedName)
+        }
+    }
+
+    private suspend fun insertTagMasters(tags: List<String>) {
+        if (tags.isNotEmpty()) {
+            dao.insertTagMasters(tags.map { TagEntity(it) })
+        }
     }
 
     private fun List<String>.normalizedTags(): List<String> {

@@ -8,8 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [RestaurantEntity::class, RestaurantTagEntity::class, VisitEntity::class],
-    version = 4,
+    entities = [RestaurantEntity::class, RestaurantTagEntity::class, TagEntity::class, VisitEntity::class],
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -26,7 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "restaurant_memo.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { INSTANCE = it }
             }
@@ -58,6 +58,29 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE restaurants ADD COLUMN isFavorite INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS tags (
+                        name TEXT NOT NULL,
+                        PRIMARY KEY(name)
+                    )
+                    """.trimIndent()
+                )
+                listOf("ラーメン", "喫茶店", "居酒屋", "駅近", "一人向き").forEach { tag ->
+                    db.execSQL("INSERT OR IGNORE INTO tags(name) VALUES(?)", arrayOf(tag))
+                }
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO tags(name)
+                    SELECT DISTINCT name FROM restaurant_tags
+                    WHERE TRIM(name) != ''
+                    """.trimIndent()
+                )
             }
         }
     }

@@ -14,6 +14,7 @@ import com.example.restaurantmemo.ui.screens.AddRestaurantScreen
 import com.example.restaurantmemo.ui.screens.AddVisitScreen
 import com.example.restaurantmemo.ui.screens.DetailScreen
 import com.example.restaurantmemo.ui.screens.HomeScreen
+import com.example.restaurantmemo.ui.screens.TagManagementScreen
 
 @Composable
 fun RestaurantMemoApp(
@@ -22,6 +23,7 @@ fun RestaurantMemoApp(
 ) {
     var screen by remember { mutableStateOf("home") }
     val restaurants by viewModel.restaurants.collectAsState()
+    val tags by viewModel.tags.collectAsState()
     var selectedRestaurantId by remember { mutableLongStateOf(0L) }
     var selectedVisitId by remember { mutableLongStateOf(0L) }
     val selectedRestaurant = restaurants.firstOrNull { it.id == selectedRestaurantId }
@@ -37,6 +39,9 @@ fun RestaurantMemoApp(
             onAddClick = {
                 screen = "add"
             },
+            onManageTagsClick = {
+                screen = "tagManagement"
+            },
             modifier = modifier
         )
 
@@ -48,6 +53,8 @@ fun RestaurantMemoApp(
                 viewModel.addRestaurant(restaurant)
                 screen = "home"
             },
+            availableTags = tags,
+            onAddTag = viewModel::addTag,
             modifier = modifier
         )
 
@@ -61,6 +68,8 @@ fun RestaurantMemoApp(
                         viewModel.updateRestaurant(updatedRestaurant)
                         screen = "detail"
                     },
+                    availableTags = tags,
+                    onAddTag = viewModel::addTag,
                     modifier = modifier,
                     initialRestaurant = restaurant
                 )
@@ -68,6 +77,17 @@ fun RestaurantMemoApp(
                 screen = "home"
             }
         }
+
+        "tagManagement" -> TagManagementScreen(
+            tags = tags,
+            onBackClick = {
+                screen = "home"
+            },
+            onAddTag = viewModel::addTag,
+            onRenameTag = viewModel::renameTag,
+            onDeleteTag = viewModel::deleteTag,
+            modifier = modifier
+        )
 
         "detail" -> {
             selectedRestaurant?.let { restaurant ->
