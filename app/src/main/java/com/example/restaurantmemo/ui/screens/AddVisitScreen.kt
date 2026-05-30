@@ -81,8 +81,6 @@ fun AddVisitScreen(
         }
     }
 
-    selectedDay = selectedDay.coerceAtMost(YearMonth.of(selectedYear, selectedMonth).lengthOfMonth())
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -110,8 +108,18 @@ fun AddVisitScreen(
                 year = selectedYear,
                 month = selectedMonth,
                 day = selectedDay,
-                onYearChange = { selectedYear = it },
-                onMonthChange = { selectedMonth = it },
+                onYearChange = { year ->
+                    selectedYear = year
+                    selectedDay = selectedDay.coerceAtMost(
+                        YearMonth.of(year, selectedMonth).lengthOfMonth()
+                    )
+                },
+                onMonthChange = { month ->
+                    selectedMonth = month
+                    selectedDay = selectedDay.coerceAtMost(
+                        YearMonth.of(selectedYear, month).lengthOfMonth()
+                    )
+                },
                 onDayChange = { selectedDay = it }
             )
 

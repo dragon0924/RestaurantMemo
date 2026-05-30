@@ -49,6 +49,7 @@ fun AddRestaurantScreen(
     var restaurantTags by remember(initialRestaurant?.id) {
         mutableStateOf(initialRestaurant?.tags.orEmpty().joinToString(", "))
     }
+    var showNameError by remember(initialRestaurant?.id) { mutableStateOf(false) }
     val isEditing = initialRestaurant != null
 
     Column(
@@ -74,10 +75,21 @@ fun AddRestaurantScreen(
         SoftCard {
             OutlinedTextField(
                 value = restaurantName,
-                onValueChange = { restaurantName = it },
+                onValueChange = {
+                    restaurantName = it
+                    if (it.isNotBlank()) {
+                        showNameError = false
+                    }
+                },
                 label = { Text("店名") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                isError = showNameError,
+                supportingText = {
+                    if (showNameError) {
+                        Text("店名を入力してください")
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -116,18 +128,21 @@ fun AddRestaurantScreen(
 
         Button(
             onClick = {
-                if (restaurantName.isNotBlank()) {
-                    onSaveClick(
-                        Restaurant(
-                            id = initialRestaurant?.id ?: 0,
-                            name = restaurantName,
-                            link = restaurantLink,
-                            location = restaurantLocation,
-                            tags = restaurantTags.toTagList(),
-                            visits = initialRestaurant?.visits ?: mutableListOf()
-                        )
-                    )
+                if (restaurantName.isBlank()) {
+                    showNameError = true
+                    return@Button
                 }
+
+                onSaveClick(
+                    Restaurant(
+                        id = initialRestaurant?.id ?: 0,
+                        name = restaurantName,
+                        link = restaurantLink,
+                        location = restaurantLocation,
+                        tags = restaurantTags.toTagList(),
+                        visits = initialRestaurant?.visits ?: mutableListOf()
+                    )
+                )
             },
             shape = RoundedCornerShape(22.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)

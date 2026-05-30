@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Restaurant
@@ -61,52 +63,66 @@ fun HomeScreen(
             subtitle = "また行きたい気持ちを、気軽に残しておこう"
         )
 
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .weight(1f)
+                .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                label = { Text("お店やタグで探す") },
-                placeholder = { Text("例: ラーメン, 喫茶店, デート向き") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(18.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = onAddClick,
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Restaurant,
-                    contentDescription = "レストラン"
+            item {
+                Spacer(modifier = Modifier.height(20.dp))
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("お店やタグで探す") },
+                    placeholder = { Text("例: ラーメン, 喫茶店, デート向き") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(18.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("新しいお店を記録する")
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = onAddClick,
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Restaurant,
+                        contentDescription = "レストラン"
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("新しいお店を記録する")
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
             if (restaurants.isEmpty()) {
-                EmptyMessage("最初のお店を登録して、思い出帳を育てていきましょう。")
+                item {
+                    EmptyMessage("最初のお店を登録して、思い出帳を育てていきましょう。")
+                }
             } else if (filteredRestaurants.isEmpty()) {
-                EmptyMessage("条件に合うお店が見つかりませんでした。少し言葉を変えて探してみましょう。")
+                item {
+                    EmptyMessage("条件に合うお店が見つかりませんでした。少し言葉を変えて探してみましょう。")
+                }
             } else {
-                filteredRestaurants.forEach { restaurant ->
+                items(
+                    items = filteredRestaurants,
+                    key = { it.id }
+                ) { restaurant ->
                     RestaurantCard(
                         restaurant = restaurant,
                         onClick = { onRestaurantClick(restaurant) }
                     )
-
                     Spacer(modifier = Modifier.height(14.dp))
                 }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(6.dp))
             }
         }
     }
