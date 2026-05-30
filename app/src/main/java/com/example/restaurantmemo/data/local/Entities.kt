@@ -37,6 +37,12 @@ data class RestaurantTagEntity(
     val name: String
 )
 
+@Entity(tableName = "tags")
+data class TagEntity(
+    @PrimaryKey
+    val name: String
+)
+
 @Entity(
     tableName = "visits",
     foreignKeys = [

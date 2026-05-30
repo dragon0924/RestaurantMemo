@@ -3,19 +3,25 @@ package com.example.restaurantmemo.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,12 +34,15 @@ import com.example.restaurantmemo.model.Restaurant
 import com.example.restaurantmemo.ui.components.AccentGreen
 import com.example.restaurantmemo.ui.components.AppBackground
 import com.example.restaurantmemo.ui.components.ScreenTitle
+import com.example.restaurantmemo.ui.components.SectionTitle
 import com.example.restaurantmemo.ui.components.SoftCard
 
 @Composable
 fun AddRestaurantScreen(
     onBackClick: () -> Unit,
     onSaveClick: (Restaurant) -> Unit,
+    availableTags: List<String>,
+    onAddTag: (String) -> Unit,
     modifier: Modifier = Modifier,
     initialRestaurant: Restaurant? = null
 ) {
@@ -46,9 +55,10 @@ fun AddRestaurantScreen(
     var restaurantLocation by remember(initialRestaurant?.id) {
         mutableStateOf(initialRestaurant?.location.orEmpty())
     }
-    var restaurantTags by remember(initialRestaurant?.id) {
-        mutableStateOf(initialRestaurant?.tags.orEmpty().joinToString(", "))
+    var selectedTags by remember(initialRestaurant?.id) {
+        mutableStateOf(initialRestaurant?.tags.orEmpty().toSet())
     }
+    var showTagDialog by remember { mutableStateOf(false) }
     var showNameError by remember(initialRestaurant?.id) { mutableStateOf(false) }
     val isEditing = initialRestaurant != null
 
@@ -112,16 +122,21 @@ fun AddRestaurantScreen(
                 singleLine = true
             )
 
+            Spacer(modifier = Modifier.height(20.dp))
+
+            SectionTitle("タグ")
+            Spacer(modifier = Modifier.height(10.dp))
+
+            SelectedTagChips(selectedTags = selectedTags.toList())
+
             Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedTextField(
-                value = restaurantTags,
-                onValueChange = { restaurantTags = it },
-                label = { Text("タグ") },
-                placeholder = { Text("例: ラーメン, 駅近, 一人向き") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2
-            )
+            OutlinedButton(
+                onClick = { showTagDialog = true },
+                shape = RoundedCornerShape(22.dp)
+            ) {
+                Text("+ タグを追加")
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -134,15 +149,15 @@ fun AddRestaurantScreen(
                 }
 
                 onSaveClick(
-                        Restaurant(
-                            id = initialRestaurant?.id ?: 0,
-                            name = restaurantName,
-                            link = restaurantLink,
-                            location = restaurantLocation,
-                            isFavorite = initialRestaurant?.isFavorite ?: false,
-                            tags = restaurantTags.toTagList(),
-                            visits = initialRestaurant?.visits ?: mutableListOf()
-                        )
+                    Restaurant(
+                        id = initialRestaurant?.id ?: 0,
+                        name = restaurantName,
+                        link = restaurantLink,
+                        location = restaurantLocation,
+                        isFavorite = initialRestaurant?.isFavorite ?: false,
+                        tags = selectedTags.toList(),
+                        visits = initialRestaurant?.visits ?: mutableListOf()
+                    )
                 )
             },
             shape = RoundedCornerShape(22.dp),
@@ -160,11 +175,136 @@ fun AddRestaurantScreen(
             Text(if (isEditing) "詳細に戻る" else "一覧に戻る")
         }
     }
+
+    if (showTagDialog) {
+        TagSelectionDialog(
+            availableTags = availableTags,
+            selectedTags = selectedTags,
+            onToggleTag = { tag ->
+                selectedTags = if (tag in selectedTags) {
+                    selectedTags - tag
+                } else {
+                    selectedTags + tag
+                }
+            },
+            onAddTag = { tag ->
+                onAddTag(tag)
+                selectedTags = selectedTags + tag
+            },
+            onDismiss = { showTagDialog = false }
+        )
+    }
 }
 
-private fun String.toTagList(): List<String> {
-    return split(",")
-        .map { it.trim() }
-        .filter { it.isNotBlank() }
-        .distinct()
+@Composable
+private fun SelectedTagChips(selectedTags: List<String>) {
+    if (selectedTags.isEmpty()) {
+        Text("タグはまだ選択されていません。")
+        return
+    }
+
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        selectedTags.forEach { tag ->
+            FilterChip(
+                selected = true,
+                onClick = {},
+                label = { Text(tag) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun TagSelectionDialog(
+    availableTags: List<String>,
+    selectedTags: Set<String>,
+    onToggleTag: (String) -> Unit,
+    onAddTag: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var newTagName by remember { mutableStateOf("") }
+    val tagChoices = remember(availableTags, selectedTags) {
+        (availableTags + selectedTags).map { it.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("タグを選択") },
+        text = {
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = newTagName,
+                        onValueChange = { newTagName = it },
+                        label = { Text("新しいタグ") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    Button(
+                        onClick = {
+                            val tag = newTagName.trim()
+                            if (tag.isNotBlank()) {
+                                onAddTag(tag)
+                                newTagName = ""
+                            }
+                        },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
+                    ) {
+                        Text("追加")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    if (tagChoices.isEmpty()) {
+                        Text("まだタグがありません。新しいタグを追加してください。")
+                    } else {
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            tagChoices.forEach { tag ->
+                                FilterChip(
+                                    selected = tag in selectedTags,
+                                    onClick = { onToggleTag(tag) },
+                                    label = {
+                                        Text(
+                                            if (tag in selectedTags) {
+                                                "✓ $tag"
+                                            } else {
+                                                tag
+                                            }
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("完了")
+            }
+        }
+    )
 }

@@ -30,6 +30,14 @@ class RestaurantMemoViewModel(application: Application) : AndroidViewModel(appli
                 initialValue = emptyList()
             )
 
+    val tags: StateFlow<List<String>> =
+        repository.tags
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyList()
+            )
+
     fun addRestaurant(restaurant: Restaurant) {
         viewModelScope.launch {
             repository.addRestaurant(restaurant)
@@ -69,6 +77,24 @@ class RestaurantMemoViewModel(application: Application) : AndroidViewModel(appli
     fun toggleFavorite(restaurant: Restaurant) {
         viewModelScope.launch {
             repository.updateFavorite(restaurant.id, !restaurant.isFavorite)
+        }
+    }
+
+    fun addTag(name: String) {
+        viewModelScope.launch {
+            repository.addTag(name)
+        }
+    }
+
+    fun renameTag(oldName: String, newName: String) {
+        viewModelScope.launch {
+            repository.renameTag(oldName, newName)
+        }
+    }
+
+    fun deleteTag(name: String) {
+        viewModelScope.launch {
+            repository.deleteTag(name)
         }
     }
 }

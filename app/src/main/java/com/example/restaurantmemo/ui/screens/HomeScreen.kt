@@ -2,8 +2,10 @@ package com.example.restaurantmemo.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -45,20 +48,22 @@ import com.example.restaurantmemo.ui.components.EmptyMessage
 import com.example.restaurantmemo.ui.components.InfoLine
 import com.example.restaurantmemo.ui.components.TagChips
 import com.example.restaurantmemo.ui.components.WarmCard
+import java.time.LocalDate
 
 @Composable
 fun HomeScreen(
     restaurants: List<Restaurant>,
     onRestaurantClick: (Restaurant) -> Unit,
     onAddClick: () -> Unit,
+    onManageTagsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    var favoriteFirst by remember { mutableStateOf(false) }
-    val filteredRestaurants = remember(restaurants, searchQuery, favoriteFirst) {
+    var sortOption by remember { mutableStateOf(RestaurantSortOption.Registered) }
+    val filteredRestaurants = remember(restaurants, searchQuery, sortOption) {
         restaurants
             .filterByNameOrTag(searchQuery)
-            .sortByFavoriteIfNeeded(favoriteFirst)
+            .sortBy(sortOption)
     }
 
     Column(
@@ -91,38 +96,43 @@ fun HomeScreen(
                     shape = RoundedCornerShape(18.dp)
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    FilterChip(
-                        selected = favoriteFirst,
-                        onClick = { favoriteFirst = !favoriteFirst },
-                        label = { Text("お気に入り順") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Favorite,
-                                contentDescription = null
-                            )
-                        }
-                    )
-
                     Button(
                         onClick = onAddClick,
                         shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentGreen),
+                        modifier = Modifier.weight(1.45f)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Restaurant,
                             contentDescription = "レストラン"
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("新しいお店を記録する")
+                        Text("お店を追加")
+                    }
+
+                    Button(
+                        onClick = onManageTagsClick,
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentGreen),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("タグを管理")
                     }
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                SortOptionChips(
+                    selectedOption = sortOption,
+                    onOptionSelected = { sortOption = it }
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
             }
@@ -151,6 +161,37 @@ fun HomeScreen(
             item {
                 Spacer(modifier = Modifier.height(6.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun SortOptionChips(
+    selectedOption: RestaurantSortOption,
+    onOptionSelected: (RestaurantSortOption) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        RestaurantSortOption.entries.forEach { option ->
+            FilterChip(
+                selected = selectedOption == option,
+                onClick = { onOptionSelected(option) },
+                label = { Text(option.label) },
+                leadingIcon = if (option == RestaurantSortOption.Favorite) {
+                    {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = null
+                        )
+                    }
+                } else {
+                    null
+                }
+            )
         }
     }
 }
@@ -211,6 +252,14 @@ private fun RestaurantCard(
     }
 }
 
+private enum class RestaurantSortOption(val label: String) {
+    Registered("登録順"),
+    Favorite("お気に入り順"),
+    VisitCount("来店回数順"),
+    RecentVisit("最近行った順"),
+    AverageRating("平均評価順")
+}
+
 private fun List<Restaurant>.filterByNameOrTag(query: String): List<Restaurant> {
     val normalizedQuery = query.trim()
     if (normalizedQuery.isBlank()) return this
@@ -223,7 +272,45 @@ private fun List<Restaurant>.filterByNameOrTag(query: String): List<Restaurant> 
     }
 }
 
-private fun List<Restaurant>.sortByFavoriteIfNeeded(favoriteFirst: Boolean): List<Restaurant> {
-    if (!favoriteFirst) return this
-    return sortedByDescending { it.isFavorite }
+private fun List<Restaurant>.sortBy(option: RestaurantSortOption): List<Restaurant> {
+    return when (option) {
+        RestaurantSortOption.Registered -> this
+        RestaurantSortOption.Favorite -> sortedByDescending { it.isFavorite }
+        RestaurantSortOption.VisitCount -> sortedByDescending { it.visits.size }
+        RestaurantSortOption.RecentVisit -> sortedWith(
+            compareByDescending<Restaurant> { it.latestVisitDate() ?: LocalDate.MIN }
+                .thenByDescending { it.id }
+        )
+        RestaurantSortOption.AverageRating -> sortedWith(
+            compareByDescending<Restaurant> { it.averageRating() ?: Double.NEGATIVE_INFINITY }
+                .thenByDescending { it.id }
+        )
+    }
+}
+
+private fun Restaurant.latestVisitDate(): LocalDate? {
+    return visits.mapNotNull { visit ->
+        visit.visitedAt.toLocalDateOrNull()
+    }.maxOrNull()
+}
+
+private fun Restaurant.averageRating(): Double? {
+    if (visits.isEmpty()) return null
+
+    return visits.map { visit ->
+        listOf(
+            visit.tasteScore,
+            visit.costScore,
+            visit.atmosphereScore,
+            visit.accessibilityScore,
+            visit.repeatScore
+        ).average()
+    }.average()
+}
+
+private fun String.toLocalDateOrNull(): LocalDate? {
+    return runCatching {
+        val parts = split("/")
+        LocalDate.of(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
+    }.getOrNull()
 }
