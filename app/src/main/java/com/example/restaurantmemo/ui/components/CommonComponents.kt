@@ -1,7 +1,10 @@
 package com.example.restaurantmemo.ui.components
 
-import androidx.compose.foundation.background
+import android.graphics.ImageDecoder
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +14,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,11 +33,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -91,6 +101,37 @@ fun SectionTitle(text: String) {
 }
 
 @Composable
+fun TagChips(
+    tags: List<String>,
+    modifier: Modifier = Modifier
+) {
+    if (tags.isEmpty()) return
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        tags.forEach { tag ->
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = SoftGreen,
+                border = BorderStroke(1.dp, VisitCardBorder)
+            ) {
+                Text(
+                    text = tag,
+                    color = Color(0xFF435B34),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun SoftCard(content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -106,7 +147,12 @@ fun SoftCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-fun VisitHistoryCard(visitNumber: Int, visit: Visit) {
+fun VisitHistoryCard(
+    visitNumber: Int,
+    visit: Visit,
+    onEditClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -145,6 +191,16 @@ fun VisitHistoryCard(visitNumber: Int, visit: Visit) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                visit.photoUri?.takeIf { it.isNotBlank() }?.let { photoUri ->
+                    VisitPhoto(
+                        uriString = photoUri,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1.7f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
                 InfoLine(label = "来店日", value = visit.visitedAt.ifBlank { "未入力" })
                 InfoLine(label = "同行者", value = visit.companion.ifBlank { "未入力" })
                 InfoLine(label = "人数", value = "${visit.numberOfPeople}人")
@@ -174,6 +230,71 @@ fun VisitHistoryCard(visitNumber: Int, visit: Visit) {
                 RatingLine(label = "雰囲気", score = visit.atmosphereScore)
                 RatingLine(label = "行きやすさ", score = visit.accessibilityScore)
                 RatingLine(label = "リピート", score = visit.repeatScore)
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = onEditClick,
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SoftGreen),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("編集", color = Color(0xFF435B34))
+                    }
+                    Button(
+                        onClick = onDeleteClick,
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SoftGreen),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("削除", color = Color(0xFF435B34))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun VisitPhoto(
+    uriString: String,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val imageBitmap by produceState<ImageBitmap?>(initialValue = null, uriString) {
+        value = runCatching {
+            val source = ImageDecoder.createSource(context.contentResolver, Uri.parse(uriString))
+            ImageDecoder.decodeBitmap(source).asImageBitmap()
+        }.getOrNull()
+    }
+
+    if (imageBitmap != null) {
+        Image(
+            bitmap = imageBitmap!!,
+            contentDescription = "来店記録の写真",
+            modifier = modifier.clip(RoundedCornerShape(18.dp)),
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Surface(
+            modifier = modifier,
+            shape = RoundedCornerShape(18.dp),
+            color = SoftGreen
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "写真を読み込めませんでした",
+                    color = MutedText,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(18.dp)
+                )
             }
         }
     }

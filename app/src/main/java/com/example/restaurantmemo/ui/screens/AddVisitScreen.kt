@@ -1,9 +1,14 @@
 package com.example.restaurantmemo.ui.screens
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.restaurantmemo.model.Visit
 import com.example.restaurantmemo.ui.components.AccentGreen
@@ -34,6 +40,7 @@ import com.example.restaurantmemo.ui.components.ScoreSelector
 import com.example.restaurantmemo.ui.components.ScreenTitle
 import com.example.restaurantmemo.ui.components.SectionTitle
 import com.example.restaurantmemo.ui.components.SoftCard
+import com.example.restaurantmemo.ui.components.VisitPhoto
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -41,21 +48,38 @@ import java.time.YearMonth
 fun AddVisitScreen(
     onBackClick: () -> Unit,
     onSaveClick: (Visit) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialVisit: Visit? = null
 ) {
-    val today = remember { LocalDate.now() }
-    var selectedYear by remember { mutableIntStateOf(today.year) }
-    var selectedMonth by remember { mutableIntStateOf(today.monthValue) }
-    var selectedDay by remember { mutableIntStateOf(today.dayOfMonth) }
-    var companion by remember { mutableStateOf("") }
-    var numberOfPeople by remember { mutableIntStateOf(1) }
-    var orderText by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
-    var tasteScore by remember { mutableIntStateOf(3) }
-    var costScore by remember { mutableIntStateOf(3) }
-    var atmosphereScore by remember { mutableIntStateOf(3) }
-    var accessibilityScore by remember { mutableIntStateOf(3) }
-    var repeatScore by remember { mutableIntStateOf(3) }
+    val initialDate = remember(initialVisit?.id) {
+        initialVisit?.visitedAt?.toLocalDateOrNull() ?: LocalDate.now()
+    }
+    var selectedYear by remember(initialVisit?.id) { mutableIntStateOf(initialDate.year) }
+    var selectedMonth by remember(initialVisit?.id) { mutableIntStateOf(initialDate.monthValue) }
+    var selectedDay by remember(initialVisit?.id) { mutableIntStateOf(initialDate.dayOfMonth) }
+    var companion by remember(initialVisit?.id) { mutableStateOf(initialVisit?.companion.orEmpty()) }
+    var numberOfPeople by remember(initialVisit?.id) { mutableIntStateOf(initialVisit?.numberOfPeople ?: 1) }
+    var orderText by remember(initialVisit?.id) { mutableStateOf(initialVisit?.orderText.orEmpty()) }
+    var note by remember(initialVisit?.id) { mutableStateOf(initialVisit?.note.orEmpty()) }
+    var photoUri by remember(initialVisit?.id) { mutableStateOf(initialVisit?.photoUri) }
+    var tasteScore by remember(initialVisit?.id) { mutableIntStateOf(initialVisit?.tasteScore ?: 3) }
+    var costScore by remember(initialVisit?.id) { mutableIntStateOf(initialVisit?.costScore ?: 3) }
+    var atmosphereScore by remember(initialVisit?.id) { mutableIntStateOf(initialVisit?.atmosphereScore ?: 3) }
+    var accessibilityScore by remember(initialVisit?.id) { mutableIntStateOf(initialVisit?.accessibilityScore ?: 3) }
+    var repeatScore by remember(initialVisit?.id) { mutableIntStateOf(initialVisit?.repeatScore ?: 3) }
+    val isEditing = initialVisit != null
+    val context = LocalContext.current
+    val photoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            photoUri = it.toString()
+        }
+    }
 
     selectedDay = selectedDay.coerceAtMost(YearMonth.of(selectedYear, selectedMonth).lengthOfMonth())
 
@@ -69,8 +93,12 @@ fun AddVisitScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         ScreenTitle(
-            title = "来店記録を追加",
-            subtitle = "小さなことでも、あとで読むとちゃんと思い出になります。"
+            title = if (isEditing) "来店記録を編集" else "来店記録を追加",
+            subtitle = if (isEditing) {
+                "その日の記憶を、少しだけ整えて残しましょう。"
+            } else {
+                "小さなことでも、あとで読むとちゃんと思い出になります。"
+            }
         )
 
         Spacer(modifier = Modifier.height(18.dp))
@@ -127,6 +155,42 @@ fun AddVisitScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            SectionTitle("写真")
+            Spacer(modifier = Modifier.height(10.dp))
+            photoUri?.takeIf { it.isNotBlank() }?.let { uri ->
+                VisitPhoto(
+                    uriString = uri,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1.7f)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = { photoLauncher.launch(arrayOf("image/*")) },
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentGreen),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(if (photoUri.isNullOrBlank()) "写真を選ぶ" else "写真を変更")
+                }
+                if (!photoUri.isNullOrBlank()) {
+                    OutlinedButton(
+                        onClick = { photoUri = null },
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("写真を外す")
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(18.dp))
@@ -147,11 +211,13 @@ fun AddVisitScreen(
             onClick = {
                 onSaveClick(
                     Visit(
+                        id = initialVisit?.id ?: 0,
                         visitedAt = "%04d/%02d/%02d".format(selectedYear, selectedMonth, selectedDay),
                         companion = companion,
                         numberOfPeople = numberOfPeople,
                         orderText = orderText,
                         note = note,
+                        photoUri = photoUri,
                         tasteScore = tasteScore,
                         costScore = costScore,
                         atmosphereScore = atmosphereScore,
@@ -163,7 +229,7 @@ fun AddVisitScreen(
             shape = RoundedCornerShape(24.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
         ) {
-            Text("この日の記録を保存する")
+            Text(if (isEditing) "変更を保存する" else "この日の記録を保存する")
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -175,4 +241,11 @@ fun AddVisitScreen(
             Text("詳細に戻る")
         }
     }
+}
+
+private fun String.toLocalDateOrNull(): LocalDate? {
+    return runCatching {
+        val parts = split("/")
+        LocalDate.of(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
+    }.getOrNull()
 }

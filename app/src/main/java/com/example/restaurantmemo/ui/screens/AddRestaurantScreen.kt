@@ -34,11 +34,22 @@ import com.example.restaurantmemo.ui.components.SoftCard
 fun AddRestaurantScreen(
     onBackClick: () -> Unit,
     onSaveClick: (Restaurant) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialRestaurant: Restaurant? = null
 ) {
-    var restaurantName by remember { mutableStateOf("") }
-    var restaurantLink by remember { mutableStateOf("") }
-    var restaurantLocation by remember { mutableStateOf("") }
+    var restaurantName by remember(initialRestaurant?.id) {
+        mutableStateOf(initialRestaurant?.name.orEmpty())
+    }
+    var restaurantLink by remember(initialRestaurant?.id) {
+        mutableStateOf(initialRestaurant?.link.orEmpty())
+    }
+    var restaurantLocation by remember(initialRestaurant?.id) {
+        mutableStateOf(initialRestaurant?.location.orEmpty())
+    }
+    var restaurantTags by remember(initialRestaurant?.id) {
+        mutableStateOf(initialRestaurant?.tags.orEmpty().joinToString(", "))
+    }
+    val isEditing = initialRestaurant != null
 
     Column(
         modifier = modifier
@@ -50,8 +61,12 @@ fun AddRestaurantScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         ScreenTitle(
-            title = "お店を登録",
-            subtitle = "名前だけでも大丈夫。あとから思い出を足せます。"
+            title = if (isEditing) "お店を編集" else "お店を登録",
+            subtitle = if (isEditing) {
+                "お店の情報を、今の記録に合わせて整えましょう。"
+            } else {
+                "名前だけでも大丈夫。あとから思い出を足せます。"
+            }
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -84,6 +99,17 @@ fun AddRestaurantScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = restaurantTags,
+                onValueChange = { restaurantTags = it },
+                label = { Text("タグ") },
+                placeholder = { Text("例: ラーメン, 駅近, 一人向き") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -93,9 +119,12 @@ fun AddRestaurantScreen(
                 if (restaurantName.isNotBlank()) {
                     onSaveClick(
                         Restaurant(
+                            id = initialRestaurant?.id ?: 0,
                             name = restaurantName,
                             link = restaurantLink,
-                            location = restaurantLocation
+                            location = restaurantLocation,
+                            tags = restaurantTags.toTagList(),
+                            visits = initialRestaurant?.visits ?: mutableListOf()
                         )
                     )
                 }
@@ -103,7 +132,7 @@ fun AddRestaurantScreen(
             shape = RoundedCornerShape(22.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
         ) {
-            Text("このお店を残す")
+            Text(if (isEditing) "変更を保存する" else "このお店を残す")
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -112,7 +141,14 @@ fun AddRestaurantScreen(
             onClick = onBackClick,
             shape = RoundedCornerShape(22.dp)
         ) {
-            Text("一覧に戻る")
+            Text(if (isEditing) "詳細に戻る" else "一覧に戻る")
         }
     }
+}
+
+private fun String.toTagList(): List<String> {
+    return split(",")
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+        .distinct()
 }

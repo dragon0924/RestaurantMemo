@@ -1,0 +1,58 @@
+package com.example.restaurantmemo.data.local
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+
+@Database(
+    entities = [RestaurantEntity::class, RestaurantTagEntity::class, VisitEntity::class],
+    version = 3,
+    exportSchema = false
+)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun restaurantDao(): RestaurantDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
+
+        fun getInstance(context: Context): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "restaurant_memo.db"
+                )
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .build()
+                    .also { INSTANCE = it }
+            }
+        }
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE visits ADD COLUMN photoUri TEXT")
+            }
+        }
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS restaurant_tags (
+                        restaurantId INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        PRIMARY KEY(restaurantId, name),
+                        FOREIGN KEY(restaurantId) REFERENCES restaurants(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_restaurant_tags_restaurantId ON restaurant_tags(restaurantId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_restaurant_tags_name ON restaurant_tags(name)")
+            }
+        }
+    }
+}
