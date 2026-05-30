@@ -1,5 +1,6 @@
 package com.example.restaurantmemo
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,12 +30,33 @@ fun RestaurantMemoApp(
     val selectedRestaurant = restaurants.firstOrNull { it.id == selectedRestaurantId }
     val selectedVisit = selectedRestaurant?.visits?.firstOrNull { it.id == selectedVisitId }
 
+    fun navigateBack() {
+        when (screen) {
+            "detail", "add", "tagManagement" -> {
+                selectedVisitId = 0L
+                screen = "home"
+            }
+
+            "addVisit", "editVisit", "editRestaurant" -> {
+                selectedVisitId = 0L
+                screen = "detail"
+            }
+        }
+    }
+
+    BackHandler(enabled = screen != "home") {
+        navigateBack()
+    }
+
     when (screen) {
         "home" -> HomeScreen(
             restaurants = restaurants,
             onRestaurantClick = { restaurant ->
                 selectedRestaurantId = restaurant.id
                 screen = "detail"
+            },
+            onFavoriteClick = { restaurant ->
+                viewModel.toggleFavorite(restaurant)
             },
             onAddClick = {
                 screen = "add"
@@ -46,9 +68,7 @@ fun RestaurantMemoApp(
         )
 
         "add" -> AddRestaurantScreen(
-            onBackClick = {
-                screen = "home"
-            },
+            onBackClick = ::navigateBack,
             onSaveClick = { restaurant ->
                 viewModel.addRestaurant(restaurant)
                 screen = "home"
@@ -62,7 +82,7 @@ fun RestaurantMemoApp(
             selectedRestaurant?.let { restaurant ->
                 AddRestaurantScreen(
                     onBackClick = {
-                        screen = "detail"
+                        navigateBack()
                     },
                     onSaveClick = { updatedRestaurant ->
                         viewModel.updateRestaurant(updatedRestaurant)
@@ -80,9 +100,7 @@ fun RestaurantMemoApp(
 
         "tagManagement" -> TagManagementScreen(
             tags = tags,
-            onBackClick = {
-                screen = "home"
-            },
+            onBackClick = ::navigateBack,
             onAddTag = viewModel::addTag,
             onRenameTag = viewModel::renameTag,
             onDeleteTag = viewModel::deleteTag,
@@ -97,7 +115,7 @@ fun RestaurantMemoApp(
                         screen = "addVisit"
                     },
                     onBackClick = {
-                        screen = "home"
+                        navigateBack()
                     },
                     onFavoriteClick = {
                         viewModel.toggleFavorite(restaurant)
@@ -128,7 +146,7 @@ fun RestaurantMemoApp(
             selectedRestaurant?.let { restaurant ->
                 AddVisitScreen(
                     onBackClick = {
-                        screen = "detail"
+                        navigateBack()
                     },
                     onSaveClick = { visit ->
                         viewModel.addVisit(restaurant.id, visit)
@@ -147,7 +165,7 @@ fun RestaurantMemoApp(
             if (restaurant != null && visit != null) {
                 AddVisitScreen(
                     onBackClick = {
-                        screen = "detail"
+                        navigateBack()
                     },
                     onSaveClick = { updatedVisit ->
                         viewModel.updateVisit(restaurant.id, updatedVisit)

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -28,8 +29,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,18 +41,38 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.restaurantmemo.model.Visit
 import java.time.LocalDate
 import java.time.YearMonth
+
+@Composable
+fun appTextFieldColors(): TextFieldColors {
+    return OutlinedTextFieldDefaults.colors(
+        focusedTextColor = PrimaryText,
+        unfocusedTextColor = PrimaryText,
+        errorTextColor = PrimaryText,
+        focusedLabelColor = AccentGreen,
+        unfocusedLabelColor = MutedText,
+        errorLabelColor = ErrorRed,
+        focusedPlaceholderColor = PlaceholderText,
+        unfocusedPlaceholderColor = PlaceholderText,
+        errorPlaceholderColor = PlaceholderText,
+        cursorColor = AccentGreen,
+        errorCursorColor = ErrorRed,
+        focusedBorderColor = AccentGreen,
+        unfocusedBorderColor = VisitCardBorder,
+        errorBorderColor = ErrorRed
+    )
+}
 
 @Composable
 fun AppHeader(title: String, subtitle: String) {
@@ -207,21 +230,11 @@ fun VisitHistoryCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Text("注文内容", fontWeight = FontWeight.Bold)
-                Text(
-                    text = visit.orderText.ifBlank { "未入力" },
-                    color = MutedText,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+                VisitTextBlock(label = "注文内容", value = visit.orderText)
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Text("感想", fontWeight = FontWeight.Bold)
-                Text(
-                    text = visit.note.ifBlank { "未入力" },
-                    color = MutedText,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+                VisitTextBlock(label = "感想", value = visit.note)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -273,12 +286,20 @@ fun VisitPhoto(
     }
 
     if (imageBitmap != null) {
-        Image(
-            bitmap = imageBitmap!!,
-            contentDescription = "来店記録の写真",
-            modifier = modifier.clip(RoundedCornerShape(18.dp)),
-            contentScale = ContentScale.Crop
-        )
+        Surface(
+            modifier = modifier,
+            shape = RoundedCornerShape(18.dp),
+            color = SoftGreen
+        ) {
+            Image(
+                bitmap = imageBitmap!!,
+                contentDescription = "来店記録の写真",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
+                contentScale = ContentScale.Fit
+            )
+        }
     } else {
         Surface(
             modifier = modifier,
@@ -301,21 +322,64 @@ fun VisitPhoto(
 }
 
 @Composable
-fun InfoLine(label: String, value: String) {
+private fun VisitTextBlock(label: String, value: String) {
+    val displayValue = value.ifBlank { "未入力" }
+    val valueColor = if (value.isBlank()) MutedText else PrimaryText
+
+    Text(
+        text = label,
+        color = MutedText,
+        fontWeight = FontWeight.SemiBold
+    )
+    Text(
+        text = displayValue,
+        color = valueColor,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier.padding(top = 4.dp)
+    )
+}
+
+@Composable
+fun InfoLine(
+    label: String,
+    value: String,
+    valueMaxLines: Int = Int.MAX_VALUE,
+    valueOverflow: TextOverflow = TextOverflow.Clip,
+    onValueClick: (() -> Unit)? = null
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 3.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.Top
     ) {
         Text(
             text = label,
             color = MutedText,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .widthIn(min = 56.dp)
+                .padding(end = 12.dp)
         )
         Text(
             text = value,
-            fontWeight = FontWeight.Medium
+            color = when {
+                value == "未入力" -> MutedText
+                onValueClick != null -> AccentGreen
+                else -> PrimaryText
+            },
+            fontWeight = FontWeight.Medium,
+            maxLines = valueMaxLines,
+            overflow = valueOverflow,
+            modifier = Modifier
+                .weight(1f)
+                .then(
+                    if (onValueClick != null) {
+                        Modifier.clickable(onClick = onValueClick)
+                    } else {
+                        Modifier
+                    }
+                )
         )
     }
 }
@@ -343,7 +407,7 @@ fun RatingLine(label: String, score: Int) {
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = score.coerceIn(1, 5).toString(),
-            color = MutedText,
+            color = PrimaryText,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
         )

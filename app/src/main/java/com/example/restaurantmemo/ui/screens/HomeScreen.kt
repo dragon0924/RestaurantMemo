@@ -27,6 +27,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,7 +38,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.restaurantmemo.model.Restaurant
@@ -46,14 +49,21 @@ import com.example.restaurantmemo.ui.components.AppBackground
 import com.example.restaurantmemo.ui.components.AppHeader
 import com.example.restaurantmemo.ui.components.EmptyMessage
 import com.example.restaurantmemo.ui.components.InfoLine
+import com.example.restaurantmemo.ui.components.MutedText
 import com.example.restaurantmemo.ui.components.TagChips
 import com.example.restaurantmemo.ui.components.WarmCard
+import com.example.restaurantmemo.ui.components.appTextFieldColors
+import com.example.restaurantmemo.ui.components.toStars
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 fun HomeScreen(
     restaurants: List<Restaurant>,
     onRestaurantClick: (Restaurant) -> Unit,
+    onFavoriteClick: (Restaurant) -> Unit,
     onAddClick: () -> Unit,
     onManageTagsClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -93,7 +103,8 @@ fun HomeScreen(
                     placeholder = { Text("例: ラーメン, 喫茶店, デート向き") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp)
+                    shape = RoundedCornerShape(18.dp),
+                    colors = appTextFieldColors()
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -152,7 +163,8 @@ fun HomeScreen(
                 ) { restaurant ->
                     RestaurantCard(
                         restaurant = restaurant,
-                        onClick = { onRestaurantClick(restaurant) }
+                        onClick = { onRestaurantClick(restaurant) },
+                        onFavoriteClick = { onFavoriteClick(restaurant) }
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                 }
@@ -199,8 +211,14 @@ private fun SortOptionChips(
 @Composable
 private fun RestaurantCard(
     restaurant: Restaurant,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onFavoriteClick: () -> Unit
 ) {
+    val uriHandler = LocalUriHandler.current
+    val link = restaurant.link.trim()
+    val latestVisitDate = restaurant.latestVisitDate()
+    val averageRating = restaurant.averageRating()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -221,19 +239,21 @@ private fun RestaurantCard(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
-                Icon(
-                    imageVector = if (restaurant.isFavorite) {
-                        Icons.Default.Favorite
-                    } else {
-                        Icons.Default.FavoriteBorder
-                    },
-                    contentDescription = if (restaurant.isFavorite) {
-                        "お気に入り"
-                    } else {
-                        "お気に入りではない"
-                    },
-                    tint = if (restaurant.isFavorite) Color(0xFFE08A8A) else AccentGreen
-                )
+                IconButton(onClick = onFavoriteClick) {
+                    Icon(
+                        imageVector = if (restaurant.isFavorite) {
+                            Icons.Default.Favorite
+                        } else {
+                            Icons.Default.FavoriteBorder
+                        },
+                        contentDescription = if (restaurant.isFavorite) {
+                            "お気に入りを解除"
+                        } else {
+                            "お気に入りに追加"
+                        },
+                        tint = if (restaurant.isFavorite) Color(0xFFE08A8A) else AccentGreen
+                    )
+                }
             }
             if (restaurant.tags.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(10.dp))
@@ -241,16 +261,88 @@ private fun RestaurantCard(
             }
             Spacer(modifier = Modifier.height(8.dp))
             InfoLine(label = "場所", value = restaurant.location.ifBlank { "未入力" })
-            InfoLine(label = "リンク", value = restaurant.link.ifBlank { "未入力" })
+            InfoLine(
+                label = "リンク",
+                value = link.ifBlank { "未入力" },
+                valueMaxLines = 1,
+                valueOverflow = TextOverflow.Ellipsis,
+                onValueClick = link.takeIf { it.isNotBlank() }?.let { url ->
+                    {
+                        runCatching {
+                            uriHandler.openUri(url.withHttpScheme())
+                        }
+                    }
+                }
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "来店記録 ${restaurant.visits.size}件",
                 color = AccentGreen,
                 fontWeight = FontWeight.SemiBold
             )
+            if (latestVisitDate != null || averageRating != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                RestaurantSummaryInfo(
+                    latestVisitDate = latestVisitDate,
+                    averageRating = averageRating
+                )
+            }
         }
     }
 }
+
+@Composable
+private fun RestaurantSummaryInfo(
+    latestVisitDate: LocalDate?,
+    averageRating: Double?
+) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        latestVisitDate?.let { date ->
+            Text(
+                text = "最近: ${date.format(HomeDateFormatter)}",
+                color = MutedText,
+                fontSize = 13.sp
+            )
+        }
+
+        averageRating?.let { rating ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "平均: ",
+                    color = MutedText,
+                    fontSize = 13.sp
+                )
+                Text(
+                    text = rating.roundToInt().toStars(),
+                    color = Color(0xFFE6A400),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = " ${String.format(Locale.US, "%.1f", rating)}",
+                    color = MutedText,
+                    fontSize = 13.sp
+                )
+            }
+        }
+    }
+}
+
+private fun String.withHttpScheme(): String {
+    return if (startsWith("http://", ignoreCase = true) ||
+        startsWith("https://", ignoreCase = true)
+    ) {
+        this
+    } else {
+        "https://$this"
+    }
+}
+
+private val HomeDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd")
 
 private enum class RestaurantSortOption(val label: String) {
     Registered("登録順"),

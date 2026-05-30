@@ -41,6 +41,7 @@ import com.example.restaurantmemo.ui.components.ScreenTitle
 import com.example.restaurantmemo.ui.components.SectionTitle
 import com.example.restaurantmemo.ui.components.SoftCard
 import com.example.restaurantmemo.ui.components.VisitPhoto
+import com.example.restaurantmemo.ui.components.appTextFieldColors
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -132,7 +133,8 @@ fun AddVisitScreen(
                 onValueChange = { companion = it },
                 label = { Text("例: 友人、家族、一人で") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                colors = appTextFieldColors()
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -151,7 +153,8 @@ fun AddVisitScreen(
                 onValueChange = { orderText = it },
                 label = { Text("注文内容") },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 2
+                minLines = 2,
+                colors = appTextFieldColors()
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -161,7 +164,8 @@ fun AddVisitScreen(
                 onValueChange = { note = it },
                 label = { Text("今日の感想") },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 3
+                minLines = 3,
+                colors = appTextFieldColors()
             )
 
             Spacer(modifier = Modifier.height(20.dp))

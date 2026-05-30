@@ -36,6 +36,7 @@ import com.example.restaurantmemo.ui.components.AppBackground
 import com.example.restaurantmemo.ui.components.ScreenTitle
 import com.example.restaurantmemo.ui.components.SectionTitle
 import com.example.restaurantmemo.ui.components.SoftCard
+import com.example.restaurantmemo.ui.components.appTextFieldColors
 
 @Composable
 fun AddRestaurantScreen(
@@ -95,6 +96,7 @@ fun AddRestaurantScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 isError = showNameError,
+                colors = appTextFieldColors(),
                 supportingText = {
                     if (showNameError) {
                         Text("店名を入力してください")
@@ -109,7 +111,8 @@ fun AddRestaurantScreen(
                 onValueChange = { restaurantLink = it },
                 label = { Text("お店のリンク") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                colors = appTextFieldColors()
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -119,7 +122,8 @@ fun AddRestaurantScreen(
                 onValueChange = { restaurantLocation = it },
                 label = { Text("場所") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                colors = appTextFieldColors()
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -248,7 +252,8 @@ private fun TagSelectionDialog(
                         onValueChange = { newTagName = it },
                         label = { Text("新しいタグ") },
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        colors = appTextFieldColors()
                     )
                     Button(
                         onClick = {

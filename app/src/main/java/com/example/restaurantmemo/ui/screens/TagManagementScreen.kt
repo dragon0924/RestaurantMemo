@@ -33,6 +33,7 @@ import com.example.restaurantmemo.ui.components.EmptyMessage
 import com.example.restaurantmemo.ui.components.ScreenTitle
 import com.example.restaurantmemo.ui.components.SectionTitle
 import com.example.restaurantmemo.ui.components.SoftCard
+import com.example.restaurantmemo.ui.components.appTextFieldColors
 
 @Composable
 fun TagManagementScreen(
@@ -77,7 +78,8 @@ fun TagManagementScreen(
                     onValueChange = { newTagName = it },
                     label = { Text("タグ名") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    colors = appTextFieldColors()
                 )
                 Button(
                     onClick = {
@@ -185,7 +187,8 @@ private fun TagManagementRow(
                 onValueChange = onEditingNameChange,
                 label = { Text("タグ名") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                colors = appTextFieldColors()
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
