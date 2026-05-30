@@ -65,4 +65,10 @@ class RestaurantMemoViewModel(application: Application) : AndroidViewModel(appli
             repository.deleteVisit(restaurantId, visit)
         }
     }
+
+    fun toggleFavorite(restaurant: Restaurant) {
+        viewModelScope.launch {
+            repository.updateFavorite(restaurant.id, !restaurant.isFavorite)
+        }
+    }
 }

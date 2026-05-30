@@ -5,6 +5,7 @@ data class Restaurant(
     val name: String,
     val link: String,
     val location: String,
+    val isFavorite: Boolean = false,
     val tags: List<String> = emptyList(),
     val visits: MutableList<Visit> = mutableListOf()
 )

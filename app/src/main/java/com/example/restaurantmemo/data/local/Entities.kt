@@ -15,7 +15,8 @@ data class RestaurantEntity(
     val id: Long = 0,
     val name: String,
     val link: String,
-    val location: String
+    val location: String,
+    val isFavorite: Boolean = false
 )
 
 @Entity(
@@ -88,6 +89,7 @@ fun RestaurantEntity.toModel(
         name = name,
         link = link,
         location = location,
+        isFavorite = isFavorite,
         tags = tags.map { it.name },
         visits = visits.map { it.toModel() }.toMutableList()
     )
@@ -102,7 +104,8 @@ fun Restaurant.toEntity(): RestaurantEntity {
         id = id,
         name = name,
         link = link,
-        location = location
+        location = location,
+        isFavorite = isFavorite
     )
 }
 

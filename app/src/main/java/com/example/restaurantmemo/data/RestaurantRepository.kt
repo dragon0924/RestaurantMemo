@@ -37,6 +37,10 @@ class RestaurantRepository(
         dao.deleteVisit(visit.toEntity(restaurantId))
     }
 
+    suspend fun updateFavorite(restaurantId: Long, isFavorite: Boolean) {
+        dao.updateFavorite(restaurantId, isFavorite)
+    }
+
     private fun List<String>.normalizedTags(): List<String> {
         return map { it.trim() }
             .filter { it.isNotBlank() }

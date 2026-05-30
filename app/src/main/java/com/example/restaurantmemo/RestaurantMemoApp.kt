@@ -79,6 +79,9 @@ fun RestaurantMemoApp(
                     onBackClick = {
                         screen = "home"
                     },
+                    onFavoriteClick = {
+                        viewModel.toggleFavorite(restaurant)
+                    },
                     onEditRestaurantClick = {
                         screen = "editRestaurant"
                     },
