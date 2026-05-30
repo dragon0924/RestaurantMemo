@@ -134,14 +134,15 @@ fun AddRestaurantScreen(
                 }
 
                 onSaveClick(
-                    Restaurant(
-                        id = initialRestaurant?.id ?: 0,
-                        name = restaurantName,
-                        link = restaurantLink,
-                        location = restaurantLocation,
-                        tags = restaurantTags.toTagList(),
-                        visits = initialRestaurant?.visits ?: mutableListOf()
-                    )
+                        Restaurant(
+                            id = initialRestaurant?.id ?: 0,
+                            name = restaurantName,
+                            link = restaurantLink,
+                            location = restaurantLocation,
+                            isFavorite = initialRestaurant?.isFavorite ?: false,
+                            tags = restaurantTags.toTagList(),
+                            visits = initialRestaurant?.visits ?: mutableListOf()
+                        )
                 )
             },
             shape = RoundedCornerShape(22.dp),

@@ -36,6 +36,9 @@ interface RestaurantDao {
     @Delete
     suspend fun deleteVisit(visit: VisitEntity)
 
+    @Query("UPDATE restaurants SET isFavorite = :isFavorite WHERE id = :restaurantId")
+    suspend fun updateFavorite(restaurantId: Long, isFavorite: Boolean)
+
     @Query("DELETE FROM restaurant_tags WHERE restaurantId = :restaurantId")
     suspend fun deleteTagsForRestaurant(restaurantId: Long)
 

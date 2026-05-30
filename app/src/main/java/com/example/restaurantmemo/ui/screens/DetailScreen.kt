@@ -9,12 +9,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -26,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,6 +52,7 @@ import com.example.restaurantmemo.ui.components.VisitHistoryCard
 fun DetailScreen(
     restaurant: Restaurant,
     onBackClick: () -> Unit,
+    onFavoriteClick: () -> Unit,
     onAddVisitClick: () -> Unit,
     onEditRestaurantClick: () -> Unit,
     onDeleteRestaurantClick: () -> Unit,
@@ -58,7 +67,12 @@ fun DetailScreen(
         modifier = modifier.fillMaxSize(),
         containerColor = AppBackground,
         topBar = {
-            DetailTopBar(restaurantName = restaurant.name)
+            DetailTopBar(
+                restaurantName = restaurant.name,
+                isFavorite = restaurant.isFavorite,
+                onFavoriteClick = onFavoriteClick,
+                onBackClick = onBackClick
+            )
         }
     ) { innerPadding ->
         Column(
@@ -133,14 +147,6 @@ fun DetailScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedButton(
-                onClick = onBackClick,
-                shape = RoundedCornerShape(22.dp)
-            ) {
-                Text("お店一覧に戻る")
-            }
         }
     }
 
@@ -170,18 +176,47 @@ fun DetailScreen(
 }
 
 @Composable
-private fun DetailTopBar(restaurantName: String) {
-    Column(
+private fun DetailTopBar(
+    restaurantName: String,
+    isFavorite: Boolean,
+    onFavoriteClick: () -> Unit,
+    onBackClick: () -> Unit
+) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(AppBackground)
-            .padding(horizontal = 22.dp, vertical = 12.dp)
+            .padding(start = 8.dp, end = 22.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        IconButton(onClick = onBackClick) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "お店一覧に戻る"
+            )
+        }
+        Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = restaurantName,
             fontSize = 21.sp,
-            fontWeight = FontWeight.ExtraBold
+            fontWeight = FontWeight.ExtraBold,
+            modifier = Modifier.weight(1f)
         )
+        IconButton(onClick = onFavoriteClick) {
+            Icon(
+                imageVector = if (isFavorite) {
+                    Icons.Default.Favorite
+                } else {
+                    Icons.Default.FavoriteBorder
+                },
+                contentDescription = if (isFavorite) {
+                    "お気に入りから外す"
+                } else {
+                    "お気に入りに追加"
+                },
+                tint = if (isFavorite) Color(0xFFE08A8A) else AccentGreen
+            )
+        }
     }
 }
 

@@ -2,7 +2,9 @@ package com.example.restaurantmemo.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,11 +15,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -28,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,8 +54,11 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    val filteredRestaurants = remember(restaurants, searchQuery) {
-        restaurants.filterByNameOrTag(searchQuery)
+    var favoriteFirst by remember { mutableStateOf(false) }
+    val filteredRestaurants = remember(restaurants, searchQuery, favoriteFirst) {
+        restaurants
+            .filterByNameOrTag(searchQuery)
+            .sortByFavoriteIfNeeded(favoriteFirst)
     }
 
     Column(
@@ -82,19 +91,37 @@ fun HomeScreen(
                     shape = RoundedCornerShape(18.dp)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                Button(
-                    onClick = onAddClick,
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Restaurant,
-                        contentDescription = "レストラン"
+                    FilterChip(
+                        selected = favoriteFirst,
+                        onClick = { favoriteFirst = !favoriteFirst },
+                        label = { Text("お気に入り順") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Favorite,
+                                contentDescription = null
+                            )
+                        }
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("新しいお店を記録する")
+
+                    Button(
+                        onClick = onAddClick,
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Restaurant,
+                            contentDescription = "レストラン"
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("新しいお店を記録する")
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -142,11 +169,31 @@ private fun RestaurantCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
-            Text(
-                text = restaurant.name,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = restaurant.name,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = if (restaurant.isFavorite) {
+                        Icons.Default.Favorite
+                    } else {
+                        Icons.Default.FavoriteBorder
+                    },
+                    contentDescription = if (restaurant.isFavorite) {
+                        "お気に入り"
+                    } else {
+                        "お気に入りではない"
+                    },
+                    tint = if (restaurant.isFavorite) Color(0xFFE08A8A) else AccentGreen
+                )
+            }
             if (restaurant.tags.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(10.dp))
                 TagChips(tags = restaurant.tags)
@@ -174,4 +221,9 @@ private fun List<Restaurant>.filterByNameOrTag(query: String): List<Restaurant> 
                 tag.contains(normalizedQuery, ignoreCase = true)
             }
     }
+}
+
+private fun List<Restaurant>.sortByFavoriteIfNeeded(favoriteFirst: Boolean): List<Restaurant> {
+    if (!favoriteFirst) return this
+    return sortedByDescending { it.isFavorite }
 }
